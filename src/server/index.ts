@@ -5,6 +5,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import type { Request, Response, NextFunction } from 'express';
+import { logger } from './logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,8 +21,7 @@ app.use(
 );
 
 app.use((req: Request, _res: Response, next: NextFunction) => {
-  const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] ${req.method} ${req.path}`);
+  logger.info({ method: req.method, path: req.path }, 'HTTP Request');
   next();
 });
 
@@ -29,7 +29,7 @@ app.use(express.json());
 
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   if (err instanceof SyntaxError && 'body' in err) {
-    console.error('[ERROR] Invalid JSON:', err.message);
+    logger.error({ err: err.message }, 'Invalid JSON in request body');
     return res.status(400).json({ error: 'Invalid JSON in request body' });
   }
   _next();
@@ -67,16 +67,15 @@ app.post(
     req: Request<unknown, AskResponse | ErrorResponse, AskRequestBody>,
     res: Response<AskResponse | ErrorResponse>
   ) => {
-    const timestamp = new Date().toISOString();
     try {
       const { question } = req.body;
 
       if (!question) {
-        console.warn(`[${timestamp}] [WARN] Missing question in request body`);
+        logger.warn('Missing question in request body');
         return res.status(400).json({ error: 'Question is required' });
       }
 
-      console.log(`[${timestamp}] [INFO] Processing question: "${question.substring(0, 50)}..."`);
+      logger.info({ questionPreview: question.substring(0, 50) }, 'Processing question');
 
       const startTime = Date.now();
       const response = await client.messages.create({
@@ -86,37 +85,29 @@ app.post(
       });
       const duration = Date.now() - startTime;
 
-      console.log(`[${timestamp}] [INFO] Claude API response received in ${duration}ms`);
+      logger.info({ duration }, 'Claude API response received');
 
       const textContent = response.content[0];
       if (textContent.type === 'text') {
-        console.log(
-          `[${timestamp}] [INFO] Sending response (${textContent.text.length} characters)`
-        );
+        logger.info({ responseLength: textContent.text.length }, 'Sending response');
         res.json({
           answer: textContent.text,
         });
       } else {
-        console.error(`[${timestamp}] [ERROR] Unexpected response type: ${textContent.type}`);
+        logger.error({ responseType: textContent.type }, 'Unexpected response type from Claude');
         res.status(500).json({ error: 'Unexpected response format from Claude' });
       }
     } catch (error) {
-      console.error(`[${timestamp}] [ERROR] Exception in /ask endpoint:`);
-      if (error instanceof Error) {
-        console.error(`[${timestamp}] [ERROR] Message: ${error.message}`);
-        console.error(`[${timestamp}] [ERROR] Stack: ${error.stack}`);
-      } else {
-        console.error(`[${timestamp}] [ERROR] Unknown error:`, error);
-      }
+      logger.error({ err: error }, 'Exception in /ask endpoint');
 
       // Check for specific Anthropic API errors
       if (error && typeof error === 'object' && 'status' in error) {
         const apiError = error as { status?: number; message?: string };
         if (apiError.status === 401) {
-          console.error(`[${timestamp}] [ERROR] Authentication failed - check ANTHROPIC_API_KEY`);
+          logger.error('Authentication failed - check ANTHROPIC_API_KEY');
           return res.status(500).json({ error: 'API authentication failed' });
         } else if (apiError.status === 429) {
-          console.error(`[${timestamp}] [ERROR] Rate limit exceeded`);
+          logger.error('Rate limit exceeded');
           return res.status(429).json({ error: 'Rate limit exceeded, please try again later' });
         }
       }
@@ -134,19 +125,18 @@ app.get('*', (_req: Request, res: Response) => {
 });
 
 if (!process.env.ANTHROPIC_API_KEY) {
-  console.error('[ERROR] ANTHROPIC_API_KEY is not set in environment variables');
-  console.error('[ERROR] Please create a .env file with ANTHROPIC_API_KEY=your_api_key');
+  logger.error('ANTHROPIC_API_KEY is not set in environment variables');
+  logger.error('Please create a .env file with ANTHROPIC_API_KEY=your_api_key');
   process.exit(1);
 }
 
 app.listen(port, () => {
-  const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] [INFO] ========================================`);
-  console.log(`[${timestamp}] [INFO] Claude API server started successfully`);
-  console.log(`[${timestamp}] [INFO] Server: http://localhost:${port}`);
-  console.log(`[${timestamp}] [INFO] Client app: http://localhost:${port}/`);
-  console.log(`[${timestamp}] [INFO] Health check: GET http://localhost:${port}/api/health`);
-  console.log(`[${timestamp}] [INFO] Ask endpoint: POST http://localhost:${port}/ask`);
-  console.log(`[${timestamp}] [INFO] Static files: ${clientBuildPath}`);
-  console.log(`[${timestamp}] [INFO] ========================================`);
+  logger.info('========================================');
+  logger.info('Claude API server started successfully');
+  logger.info({ url: `http://localhost:${port}` }, 'Server');
+  logger.info({ url: `http://localhost:${port}/` }, 'Client app');
+  logger.info({ url: `http://localhost:${port}/api/health` }, 'Health check endpoint');
+  logger.info({ url: `http://localhost:${port}/ask` }, 'Ask endpoint');
+  logger.info({ path: clientBuildPath }, 'Static files');
+  logger.info('========================================');
 });
