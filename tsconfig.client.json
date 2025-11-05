@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    /* Client-specific options for browser/React */
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "rootDir": "./src/client",
+    "outDir": "./dist/client",
+    "types": ["vite/client"]
+  },
+  "include": ["src/client/**/*"],
+  "exclude": ["node_modules", "dist", "src/server"]
+}

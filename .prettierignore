@@ -1,0 +1,7 @@
+node_modules
+dist
+*.log
+.env
+package-lock.json
+coverage
+.DS_Store

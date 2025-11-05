@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    /* Base options for all projects */
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "noImplicitAny": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx"
+  },
+  "exclude": ["node_modules", "dist", "build"]
+}

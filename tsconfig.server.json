@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    /* Server-specific options for Node.js */
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "rootDir": "./src/server",
+    "outDir": "./dist/server",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "jsx": "preserve"
+  },
+  "include": ["src/server/**/*"],
+  "exclude": ["node_modules", "dist", "src/client"]
+}
