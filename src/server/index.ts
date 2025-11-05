@@ -12,7 +12,6 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port: number = 3000;
 
-// CORS middleware - allow requests from frontend
 app.use(
   cors({
     origin: ['http://localhost:5173', 'http://localhost:3000'],
@@ -20,7 +19,6 @@ app.use(
   })
 );
 
-// Logging middleware
 app.use((req: Request, _res: Response, next: NextFunction) => {
   const timestamp = new Date().toISOString();
   console.log(`[${timestamp}] ${req.method} ${req.path}`);
@@ -29,7 +27,6 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
 
 app.use(express.json());
 
-// Error handling for JSON parsing
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   if (err instanceof SyntaxError && 'body' in err) {
     console.error('[ERROR] Invalid JSON:', err.message);
@@ -57,7 +54,6 @@ interface HealthResponse {
   endpoint: string;
 }
 
-// API endpoint for health check
 app.get('/api/health', (_req: Request, res: Response<HealthResponse>) => {
   res.json({
     status: 'Server is running',
@@ -65,7 +61,6 @@ app.get('/api/health', (_req: Request, res: Response<HealthResponse>) => {
   });
 });
 
-// API endpoint for asking Claude
 app.post(
   '/ask',
   async (
@@ -131,17 +126,13 @@ app.post(
   }
 );
 
-// Serve static files from the client build directory (AFTER API routes)
 const clientBuildPath = path.join(__dirname, '..', 'client');
 app.use(express.static(clientBuildPath));
 
-// Serve the React app for all other GET routes (SPA fallback) - MUST BE LAST
-// For Express 5, we need to handle both root and nested paths separately
 app.get('*', (_req: Request, res: Response) => {
   res.sendFile(path.join(clientBuildPath, 'index.html'));
 });
 
-// Check for API key on startup
 if (!process.env.ANTHROPIC_API_KEY) {
   console.error('[ERROR] ANTHROPIC_API_KEY is not set in environment variables');
   console.error('[ERROR] Please create a .env file with ANTHROPIC_API_KEY=your_api_key');
